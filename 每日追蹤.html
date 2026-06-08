@@ -1,0 +1,1534 @@
+﻿<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>每日最低打卡記錄</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;500;700&family=Noto+Sans+TC:wght@300;400;500&family=Space+Mono:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1410;
+    --ink-soft: #3d3530;
+    --ink-faint: #7a6e68;
+    --paper: #f7f3ee;
+    --paper-warm: #ede8e0;
+    --paper-deep: #ddd6cc;
+    --accent: #8b4a2e;
+    --accent-soft: #c07a56;
+    --accent-pale: #e8cfc0;
+    --green: #3a6b4e;
+    --green-pale: #c8dfd2;
+    --blue: #2d4a6e;
+    --blue-pale: #c5d4e8;
+    --gold: #8a6e2a;
+    --gold-pale: #e8dab8;
+    --line: rgba(26,20,16,0.12);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Noto Sans TC', sans-serif;
+    min-height: 100vh;
+    position: relative;
+  }
+
+  /* Paper texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: 
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 27px,
+        rgba(26,20,16,0.04) 27px,
+        rgba(26,20,16,0.04) 28px
+      );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 40px 24px 80px; }
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 48px;
+    padding-bottom: 32px;
+    border-bottom: 2px solid var(--ink);
+    position: relative;
+  }
+  .header::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60%;
+    height: 1px;
+    background: var(--ink);
+  }
+  .header-eyebrow {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .header h1 {
+    font-family: 'Noto Serif TC', serif;
+    font-size: clamp(28px, 5vw, 42px);
+    font-weight: 300;
+    letter-spacing: 0.15em;
+    color: var(--ink);
+    line-height: 1.2;
+  }
+  .header-subtitle {
+    margin-top: 10px;
+    font-size: 13px;
+    color: var(--ink-faint);
+    letter-spacing: 0.08em;
+  }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 36px;
+    border-bottom: 1.5px solid var(--ink);
+  }
+  .tab-btn {
+    flex: 1;
+    padding: 12px 8px;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -1.5px;
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 13px;
+    letter-spacing: 0.05em;
+    color: var(--ink-faint);
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .tab-btn.active {
+    color: var(--ink);
+    border-bottom-color: var(--ink);
+    font-weight: 500;
+  }
+  .tab-btn:hover:not(.active) { color: var(--ink-soft); }
+
+  /* Panels */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* Date selector */
+  .date-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+  }
+  .date-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+  }
+  .date-input {
+    font-family: 'Space Mono', monospace;
+    font-size: 14px;
+    border: 1px solid var(--paper-deep);
+    background: var(--paper-warm);
+    color: var(--ink);
+    padding: 6px 12px;
+    border-radius: 2px;
+    cursor: pointer;
+  }
+  .date-input:focus { outline: 1px solid var(--ink); }
+  .today-btn {
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 12px;
+    padding: 6px 14px;
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    border-radius: 2px;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: opacity 0.2s;
+  }
+  .today-btn:hover { opacity: 0.8; }
+
+  /* Quick actions */
+  .quick-action-card {
+    background: linear-gradient(135deg, #fffaf5 0%, #f3ebe2 100%);
+    border: 1px solid rgba(139, 74, 46, 0.18);
+    border-radius: 3px;
+    padding: 22px 24px;
+    margin-bottom: 24px;
+  }
+  .quick-action-eyebrow {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .quick-action-title {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 20px;
+    line-height: 1.35;
+    margin-bottom: 8px;
+  }
+  .quick-action-desc {
+    font-size: 13px;
+    color: var(--ink-soft);
+    line-height: 1.7;
+    margin-bottom: 16px;
+  }
+  .quick-action-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .quick-btn {
+    border: none;
+    border-radius: 2px;
+    cursor: pointer;
+    padding: 11px 18px;
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    transition: all 0.2s;
+  }
+  .quick-btn.primary {
+    background: var(--ink);
+    color: var(--paper);
+  }
+  .quick-btn.primary:hover { background: var(--ink-soft); }
+  .quick-btn.secondary {
+    background: white;
+    color: var(--ink);
+    border: 1px solid var(--paper-deep);
+  }
+  .quick-btn.secondary:hover {
+    background: var(--paper-warm);
+    border-color: var(--ink-soft);
+  }
+
+  /* Form cards */
+  .form-card {
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    padding: 28px 32px;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .form-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    width: 4px;
+  }
+  .card-checkin::before { background: var(--accent); }
+  .card-life::before { background: var(--green); }
+  .card-work::before { background: var(--blue); }
+  .card-sleep::before { background: var(--gold); }
+
+  .card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .card-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .icon-checkin { background: var(--accent-pale); }
+  .icon-life { background: var(--green-pale); }
+  .icon-work { background: var(--blue-pale); }
+  .icon-sleep { background: var(--gold-pale); }
+
+  .card-title-group { flex: 1; }
+  .card-title {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 17px;
+    font-weight: 500;
+    color: var(--ink);
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+  }
+  .card-desc {
+    font-size: 12px;
+    color: var(--ink-faint);
+    letter-spacing: 0.03em;
+    line-height: 1.6;
+  }
+
+  .field-group { margin-bottom: 16px; }
+  .field-group:last-child { margin-bottom: 0; }
+
+  .field-label {
+    display: block;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  .field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 520px) { .field-row { grid-template-columns: 1fr; } }
+
+  input[type="number"],
+  input[type="time"],
+  input[type="text"],
+  textarea {
+    width: 100%;
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 14px;
+    color: var(--ink);
+    background: var(--paper);
+    border: 1px solid var(--paper-deep);
+    border-radius: 2px;
+    padding: 8px 12px;
+    transition: border-color 0.2s;
+    resize: none;
+  }
+  input[type="number"]:focus,
+  input[type="time"]:focus,
+  input[type="text"]:focus,
+  textarea:focus {
+    outline: none;
+    border-color: var(--ink-soft);
+    background: var(--paper-warm);
+  }
+  textarea { line-height: 1.7; min-height: 80px; }
+  textarea.tall { min-height: 110px; }
+
+  .checklist {
+    display: grid;
+    gap: 10px;
+  }
+  .check-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--paper);
+    border: 1px solid var(--paper-deep);
+    border-radius: 2px;
+    font-size: 14px;
+    color: var(--ink-soft);
+    cursor: pointer;
+    line-height: 1.45;
+  }
+  .check-item input {
+    width: 17px;
+    height: 17px;
+    accent-color: var(--ink);
+    flex-shrink: 0;
+  }
+  .check-item:has(input:checked) {
+    background: var(--paper-warm);
+    color: var(--ink);
+  }
+
+  /* Save button */
+  .save-bar {
+    display: flex;
+    justify-content: center;
+    margin-top: 32px;
+  }
+  .save-btn {
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 14px;
+    letter-spacing: 0.1em;
+    padding: 13px 48px;
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .save-btn:hover { background: var(--ink-soft); }
+  .save-btn:active { transform: translateY(1px); }
+
+  .toast {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--ink);
+    color: var(--paper);
+    font-size: 13px;
+    padding: 10px 24px;
+    border-radius: 2px;
+    opacity: 0;
+    transition: all 0.3s;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 99;
+    letter-spacing: 0.05em;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* Review panel */
+  .review-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+  }
+  .review-title {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 22px;
+    font-weight: 300;
+    letter-spacing: 0.1em;
+    flex: 1;
+  }
+  .month-select {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    border: 1px solid var(--paper-deep);
+    background: var(--paper-warm);
+    color: var(--ink);
+    padding: 7px 12px;
+    border-radius: 2px;
+    cursor: pointer;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  @media (max-width: 520px) { .stats-grid { grid-template-columns: 1fr; } }
+
+  .stat-card {
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    padding: 20px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .stat-checkin::after { background: var(--accent); }
+  .stat-life::after { background: var(--green); }
+  .stat-sleep::after { background: var(--gold); }
+
+  .stat-num {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 36px;
+    font-weight: 300;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .stat-label { font-size: 12px; color: var(--ink-faint); letter-spacing: 0.05em; }
+
+  .entries-list { display: flex; flex-direction: column; gap: 16px; }
+  .entry-card {
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    overflow: hidden;
+    transition: box-shadow 0.2s;
+  }
+  .entry-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+
+  .entry-date-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 20px;
+    background: var(--paper-warm);
+    border-bottom: 1px solid var(--line);
+  }
+  .entry-date-text {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-soft);
+    letter-spacing: 0.1em;
+  }
+  .entry-day-label {
+    font-size: 11px;
+    color: var(--ink-faint);
+    letter-spacing: 0.08em;
+  }
+  .entry-delete {
+    background: none;
+    border: none;
+    color: var(--ink-faint);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 2px 6px;
+    border-radius: 2px;
+    transition: color 0.2s;
+  }
+  .entry-delete:hover { color: var(--accent); }
+
+  .entry-body { padding: 16px 20px; }
+  .entry-section { margin-bottom: 14px; }
+  .entry-section:last-child { margin-bottom: 0; }
+  .entry-section-title {
+    font-size: 11px;
+    font-family: 'Space Mono', monospace;
+    letter-spacing: 0.12em;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .entry-section-title::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+  .sec-checkin .entry-section-title::before { background: var(--accent); }
+  .sec-life .entry-section-title::before { background: var(--green); }
+  .sec-work .entry-section-title::before { background: var(--blue); }
+  .sec-sleep .entry-section-title::before { background: var(--gold); }
+
+  .entry-meta {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-bottom: 4px;
+  }
+  .entry-text {
+    font-size: 13px;
+    color: var(--ink-soft);
+    line-height: 1.75;
+    white-space: pre-wrap;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--ink-faint);
+  }
+  .empty-state .empty-icon { font-size: 36px; margin-bottom: 12px; }
+  .empty-state p { font-size: 14px; letter-spacing: 0.05em; }
+
+  .review-nav { display: flex; gap: 8px; align-items: center; }
+  .nav-btn {
+    background: none;
+    border: 1px solid var(--paper-deep);
+    color: var(--ink-soft);
+    width: 32px; height: 32px;
+    border-radius: 2px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+  .nav-btn:hover { background: var(--paper-warm); border-color: var(--ink-soft); }
+
+  /* Divider */
+  .divider {
+    height: 1px;
+    background: var(--line);
+    margin: 28px 0;
+  }
+
+  /* Mini calendar heatmap */
+  .heatmap-section { margin-bottom: 32px; }
+  .heatmap-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .heatmap {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+  .heatmap-day {
+    width: 24px;
+    height: 24px;
+    border-radius: 3px;
+    background: var(--paper-warm);
+    border: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    color: var(--ink-faint);
+    cursor: default;
+    transition: all 0.15s;
+    position: relative;
+  }
+  .heatmap-day.has-entry {
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
+    cursor: pointer;
+  }
+  .heatmap-day.has-entry:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+    transform: scale(1.15);
+  }
+  .heatmap-day.today-marker {
+    box-shadow: 0 0 0 2px var(--accent);
+  }
+  .heatmap-day.selected-day {
+    box-shadow: 0 0 0 2px var(--green);
+  }
+
+  /* Day detail popup */
+  .day-detail {
+    background: white;
+    border: 1.5px solid var(--ink);
+    border-radius: 3px;
+    padding: 24px 28px;
+    margin: 16px 0 24px;
+    position: relative;
+    animation: fadeSlide 0.2s ease;
+  }
+  @keyframes fadeSlide {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .day-detail-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--line);
+  }
+  .day-detail-date {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+  }
+  .day-detail-close {
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: var(--ink-faint);
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+  }
+  .day-detail-close:hover { color: var(--ink); }
+
+  /* Export button */
+  .export-bar {
+    margin-bottom: 20px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .export-btn {
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 12px;
+    padding: 7px 18px;
+    background: var(--paper-warm);
+    border: 1px solid var(--paper-deep);
+    border-radius: 2px;
+    color: var(--ink-soft);
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .export-btn:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .export-hint {
+    font-size: 11px;
+    color: var(--ink-faint);
+    letter-spacing: 0.03em;
+  }
+  .export-card {
+    background: linear-gradient(135deg, #fff 0%, #f6efe7 100%);
+    border: 1px solid rgba(139, 74, 46, 0.16);
+    border-radius: 3px;
+    padding: 18px 20px;
+    margin-bottom: 20px;
+  }
+  .export-title {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 17px;
+    margin-bottom: 6px;
+  }
+  .export-desc {
+    font-size: 12px;
+    color: var(--ink-soft);
+    line-height: 1.7;
+    margin-bottom: 12px;
+  }
+  .floating-chatgpt {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    z-index: 80;
+    border: none;
+    border-radius: 999px;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 12px 18px;
+    box-shadow: 0 10px 24px rgba(26,20,16,0.16);
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: transform 0.2s, background 0.2s;
+  }
+  .floating-chatgpt:hover {
+    background: var(--accent);
+    transform: translateY(-2px);
+  }
+  .manual-copy-panel {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    background: rgba(26, 20, 16, 0.44);
+  }
+  .manual-copy-panel.show { display: flex; }
+  .manual-copy-box {
+    width: min(680px, 100%);
+    max-height: 86vh;
+    overflow: auto;
+    background: var(--paper);
+    border: 1px solid var(--paper-deep);
+    border-radius: 4px;
+    box-shadow: 0 20px 50px rgba(26,20,16,0.22);
+    padding: 18px;
+  }
+  .manual-copy-title {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 18px;
+    margin-bottom: 8px;
+  }
+  .manual-copy-desc {
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--ink-soft);
+    margin-bottom: 12px;
+  }
+  .manual-copy-text {
+    width: 100%;
+    min-height: 260px;
+    resize: vertical;
+    font-size: 14px;
+    line-height: 1.7;
+    background: #fff;
+  }
+  .manual-copy-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .manual-copy-actions button {
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 13px;
+    padding: 9px 14px;
+    border-radius: 3px;
+    border: 1px solid var(--paper-deep);
+    background: var(--paper);
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .manual-copy-actions .primary {
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
+  }
+  @media (max-width: 640px) {
+    .floating-chatgpt {
+      left: 16px;
+      right: 16px;
+      bottom: 16px;
+      border-radius: 3px;
+      text-align: center;
+    }
+  }
+
+  /* Filter bar for review */
+  .filter-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .filter-btn {
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 12px;
+    padding: 5px 14px;
+    background: none;
+    border: 1px solid var(--paper-deep);
+    border-radius: 20px;
+    color: var(--ink-faint);
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: all 0.2s;
+  }
+  .filter-btn.active {
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--paper); }
+  ::-webkit-scrollbar-thumb { background: var(--paper-deep); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header class="header">
+    <div class="header-eyebrow">Daily minimum</div>
+    <h1>每日最低打卡記錄</h1>
+    <div class="header-subtitle">生活・工作・睡眠　留下最低限度的真實資料</div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('record')">今日紀錄</button>
+    <button class="tab-btn" onclick="switchTab('review')">回顧總覽</button>
+  </div>
+
+  <!-- RECORD PANEL -->
+  <div id="panel-record" class="panel active">
+    <div class="date-bar">
+      <span class="date-label">日期</span>
+      <input type="date" class="date-input" id="record-date" />
+      <button class="today-btn" onclick="setToday()">今天</button>
+    </div>
+
+    <div class="quick-action-card">
+      <div class="quick-action-eyebrow">ChatGPT 匯出</div>
+      <div class="quick-action-title">首頁就能直接複製本月紀錄，不用先切去回顧頁找按鈕</div>
+      <div class="quick-action-desc">如果你想先看整理後的月回顧，再決定要不要匯出，也可以直接跳到回顧總覽。</div>
+      <div class="quick-action-buttons">
+        <button class="quick-btn primary" onclick="exportCurrentMonthForChatGPT()">複製本月給 ChatGPT</button>
+        <button class="quick-btn secondary" onclick="jumpToReview()">先看回顧總覽</button>
+      </div>
+    </div>
+
+    <!-- Card 1: Minimum check-in -->
+    <div class="form-card card-checkin">
+      <div class="card-header">
+        <div class="card-icon icon-checkin">✓</div>
+        <div class="card-title-group">
+          <div class="card-title">每日最低打卡記錄</div>
+          <div class="card-desc">今天只要把最低標準留下來，就算有前進</div>
+        </div>
+      </div>
+      <div class="checklist">
+        <label class="check-item"><input type="checkbox" id="check-no-phone" />睡前不滑手機</label>
+        <label class="check-item"><input type="checkbox" id="check-water" />喝足水</label>
+        <label class="check-item"><input type="checkbox" id="check-stretch" />伸展10分鐘</label>
+        <label class="check-item"><input type="checkbox" id="check-homework" />完成論文/作業一份</label>
+        <label class="check-item"><input type="checkbox" id="check-reflection" />一句反思</label>
+      </div>
+    </div>
+
+    <!-- Card 2: Life -->
+    <div class="form-card card-life">
+      <div class="card-header">
+        <div class="card-icon icon-life">生</div>
+        <div class="card-title-group">
+          <div class="card-title">生活</div>
+          <div class="card-desc">用三個問題看清今天的生活狀態</div>
+        </div>
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="life-done">今天完成什麼？</label>
+        <textarea id="life-done" placeholder="今天真的完成了哪些事？"></textarea>
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="life-avoided">今天逃避什麼？</label>
+        <textarea id="life-avoided" placeholder="有哪些事被我拖開、略過或不想面對？"></textarea>
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="life-tomorrow">明天先完成什麼？</label>
+        <textarea id="life-tomorrow" placeholder="明天第一個要推動的具體事項"></textarea>
+      </div>
+    </div>
+
+    <!-- Card 3: Work -->
+    <div class="form-card card-work">
+      <div class="card-header">
+        <div class="card-icon icon-work">工</div>
+        <div class="card-title-group">
+          <div class="card-title">工作</div>
+          <div class="card-desc">把累、做到的事、可改進的地方分開看</div>
+        </div>
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="work-tired">今天最累的事？</label>
+        <textarea id="work-tired" placeholder="今天最消耗你的地方是什麼？"></textarea>
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="work-done">今天有做到什麼？</label>
+        <textarea id="work-done" placeholder="哪怕很小，今天完成或推進了什麼？"></textarea>
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="work-improve">明天可改進什麼？</label>
+        <textarea id="work-improve" placeholder="明天可以少一點摩擦、多一點推進的調整"></textarea>
+      </div>
+    </div>
+
+    <!-- Card 4: Sleep -->
+    <div class="form-card card-sleep">
+      <div class="card-header">
+        <div class="card-icon icon-sleep">眠</div>
+        <div class="card-title-group">
+          <div class="card-title">睡眠時數</div>
+          <div class="card-desc">只記總時數，保持簡單</div>
+        </div>
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="sleep-hours">睡眠時數</label>
+        <input type="number" id="sleep-hours" min="0" max="24" step="0.5" placeholder="例如 7.5" />
+      </div>
+    </div>
+
+    <div class="save-bar">
+      <button class="save-btn" onclick="saveEntry()">儲存今日紀錄</button>
+    </div>
+  </div>
+
+  <!-- REVIEW PANEL -->
+  <div id="panel-review" class="panel">
+    <div class="review-header">
+      <div class="review-title">回顧總覽</div>
+      <div class="review-nav">
+        <button class="nav-btn" onclick="changeMonth(-1)">‹</button>
+        <select class="month-select" id="review-month" onchange="renderReview()"></select>
+        <button class="nav-btn" onclick="changeMonth(1)">›</button>
+      </div>
+    </div>
+
+    <!-- Heatmap -->
+    <div class="heatmap-section">
+      <div class="heatmap-title">本月紀錄出席　<span style="font-size:10px;color:var(--accent);">（點深色日期可展開）</span></div>
+      <div class="heatmap" id="heatmap"></div>
+      <div id="day-detail-container"></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card stat-checkin">
+        <div class="stat-num" id="stat-count">0</div>
+        <div class="stat-label">本月紀錄天數</div>
+      </div>
+      <div class="stat-card stat-life">
+        <div class="stat-num" id="stat-avg-checks">—</div>
+        <div class="stat-label">平均完成打卡</div>
+      </div>
+      <div class="stat-card stat-sleep">
+        <div class="stat-num" id="stat-avg-sleep">—</div>
+        <div class="stat-label">平均睡眠時數</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Export -->
+    <div class="export-card">
+      <div class="export-title">ChatGPT 匯出區</div>
+      <div class="export-desc">這裡匯出的是目前選取月份的內容。你切到別的月份後，再按一次就會複製該月份的回顧資料。</div>
+      <div class="export-bar">
+        <button class="export-btn" onclick="exportForChatGPT()">📋 複製目前月份給 ChatGPT</button>
+        <span class="export-hint">複製後直接貼到 ChatGPT，請它幫你整理這個月的成長模式</span>
+      </div>
+    </div>
+
+    <!-- Filter -->
+    <div class="filter-bar">
+      <button class="filter-btn active" data-filter="all" onclick="setFilter('all', this)">全部</button>
+      <button class="filter-btn" data-filter="checkin" onclick="setFilter('checkin', this)">✓ 打卡</button>
+      <button class="filter-btn" data-filter="life" onclick="setFilter('life', this)">生活</button>
+      <button class="filter-btn" data-filter="work" onclick="setFilter('work', this)">工作</button>
+      <button class="filter-btn" data-filter="sleep" onclick="setFilter('sleep', this)">睡眠</button>
+    </div>
+
+    <div class="entries-list" id="entries-list"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="manual-copy-panel" id="manual-copy-panel" onclick="closeManualCopy(event)">
+  <div class="manual-copy-box">
+    <div class="manual-copy-title">手機沒有允許自動複製</div>
+    <div class="manual-copy-desc">請長按下方文字框，選擇全選與複製。複製後再貼到 ChatGPT。</div>
+    <textarea class="manual-copy-text" id="manual-copy-text" readonly onclick="event.stopPropagation()"></textarea>
+    <div class="manual-copy-actions">
+      <button onclick="event.stopPropagation(); closeManualCopy()">關閉</button>
+      <button class="primary" onclick="event.stopPropagation(); selectManualCopyText()">全選文字</button>
+    </div>
+  </div>
+</div>
+<button class="floating-chatgpt" onclick="exportCurrentMonthForChatGPT()">複製本月給 ChatGPT</button>
+<div id="loading-overlay" style="display:none;position:fixed;inset:0;background:rgba(247,243,238,0.8);z-index:999;align-items:center;justify-content:center;flex-direction:column;gap:12px;"><div style="width:32px;height:32px;border:2px solid #ddd6cc;border-top-color:#1a1410;border-radius:50%;animation:spin 0.7s linear infinite;"></div><div style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.15em;color:#7a6e68;">同步中...</div></div>
+<style>@keyframes spin{to{transform:rotate(360deg);}}</style>
+
+<script type="module">
+// ---- Firebase ----
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, setDoc, getDoc, deleteDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBqZLrJ-a9FsIwKKs5Cegjq2QjzeWGpSeI",
+  authDomain: "dailywork-602a3.firebaseapp.com",
+  projectId: "dailywork-602a3",
+  storageBucket: "dailywork-602a3.firebasestorage.app",
+  messagingSenderId: "969223511394",
+  appId: "1:969223511394:web:719fc05024c326ba0c603b"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// ---- Storage ----
+// In-memory cache
+let entriesCache = null;
+
+async function loadEntries() {
+  if (entriesCache) return entriesCache;
+  const snapshot = await getDocs(collection(db, 'entries'));
+  entriesCache = {};
+  snapshot.forEach(d => { entriesCache[d.id] = d.data(); });
+  return entriesCache;
+}
+
+async function saveEntryToDb(date, data) {
+  await setDoc(doc(db, 'entries', date), data);
+  if (entriesCache) entriesCache[date] = data;
+}
+
+async function deleteEntryFromDb(date) {
+  await deleteDoc(doc(db, 'entries', date));
+  if (entriesCache) delete entriesCache[date];
+}
+
+// ---- Helpers ----
+function todayStr() {
+  const d = new Date();
+  return d.toISOString().slice(0, 10);
+}
+
+function formatDate(str) {
+  const d = new Date(str + 'T00:00:00');
+  const days = ['日','一','二','三','四','五','六'];
+  return `${d.getFullYear()} 年 ${d.getMonth()+1} 月 ${d.getDate()} 日（週${days[d.getDay()]}）`;
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function showLoading(on) {
+  document.getElementById('loading-overlay').style.display = on ? 'flex' : 'none';
+}
+
+function setReviewMonthToCurrent() {
+  const now = new Date();
+  const monthValue = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2,'0')}`;
+  document.getElementById('review-month').value = monthValue;
+  reviewYear = now.getFullYear();
+  reviewMonth = now.getMonth() + 1;
+}
+
+// ---- Tabs ----
+window.switchTab = function(name) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    b.classList.toggle('active', ['record','review'][i] === name);
+  });
+  document.getElementById('panel-record').classList.toggle('active', name === 'record');
+  document.getElementById('panel-review').classList.toggle('active', name === 'review');
+  if (name === 'review') renderReview();
+}
+
+window.jumpToReview = function() {
+  switchTab('review');
+}
+
+window.exportCurrentMonthForChatGPT = async function() {
+  setReviewMonthToCurrent();
+  switchTab('review');
+  await renderReview();
+  exportForChatGPT();
+}
+
+// ---- Record tab ----
+let currentDate = todayStr();
+
+const checkItems = [
+  ['noPhone', '睡前不滑手機', 'check-no-phone'],
+  ['water', '喝足水', 'check-water'],
+  ['stretch', '伸展10分鐘', 'check-stretch'],
+  ['homework', '完成論文/作業一份', 'check-homework'],
+  ['reflection', '一句反思', 'check-reflection']
+];
+
+function getCheckins(e = {}) {
+  return e.checkins || {};
+}
+
+function countChecks(e = {}) {
+  const checkins = getCheckins(e);
+  return checkItems.filter(([key]) => !!checkins[key]).length;
+}
+
+function checkedLabels(e = {}) {
+  const checkins = getCheckins(e);
+  return checkItems
+    .filter(([key]) => !!checkins[key])
+    .map(([, label]) => label);
+}
+
+window.setToday = function() {
+  currentDate = todayStr();
+  document.getElementById('record-date').value = currentDate;
+  loadEntryToForm(currentDate);
+}
+
+async function loadEntryToForm(date) {
+  showLoading(true);
+  const entries = await loadEntries();
+  showLoading(false);
+  const e = entries[date] || {};
+  const checkins = getCheckins(e);
+  checkItems.forEach(([key, , id]) => {
+    document.getElementById(id).checked = !!checkins[key];
+  });
+  document.getElementById('life-done').value = e.lifeDone || '';
+  document.getElementById('life-avoided').value = e.lifeAvoided || '';
+  document.getElementById('life-tomorrow').value = e.lifeTomorrow || '';
+  document.getElementById('work-tired').value = e.workTired || '';
+  document.getElementById('work-done').value = e.workDone || '';
+  document.getElementById('work-improve').value = e.workImprove || '';
+  document.getElementById('sleep-hours').value = e.sleepHours || '';
+}
+
+window.saveEntry = async function() {
+  const date = document.getElementById('record-date').value;
+  if (!date) { showToast('請先選擇日期'); return; }
+  const checkins = {};
+  checkItems.forEach(([key, , id]) => {
+    checkins[key] = document.getElementById(id).checked;
+  });
+  const data = {
+    checkins,
+    lifeDone: document.getElementById('life-done').value,
+    lifeAvoided: document.getElementById('life-avoided').value,
+    lifeTomorrow: document.getElementById('life-tomorrow').value,
+    workTired: document.getElementById('work-tired').value,
+    workDone: document.getElementById('work-done').value,
+    workImprove: document.getElementById('work-improve').value,
+    sleepHours: document.getElementById('sleep-hours').value,
+    savedAt: new Date().toISOString()
+  };
+  showLoading(true);
+  try {
+    await saveEntryToDb(date, data);
+    showToast('✓ 已儲存');
+  } catch(err) {
+    showToast('儲存失敗，請重試');
+    console.error(err);
+  }
+  showLoading(false);
+}
+
+document.getElementById('record-date').addEventListener('change', function() {
+  currentDate = this.value;
+  entriesCache = null; // refresh cache on date change
+  loadEntryToForm(currentDate);
+});
+
+// ---- Review tab ----
+let reviewYear, reviewMonth;
+let currentFilter = 'all';
+
+function initReviewMonths() {
+  const sel = document.getElementById('review-month');
+  sel.innerHTML = '';
+  const now = new Date();
+  for (let y = 2025; y <= now.getFullYear() + 1; y++) {
+    const startM = (y === 2025) ? 4 : 1;
+    const endM = (y === now.getFullYear()) ? now.getMonth() + 1 : 12;
+    for (let m = startM; m <= endM; m++) {
+      const val = `${y}-${String(m).padStart(2,'0')}`;
+      const label = `${y} 年 ${m} 月`;
+      const opt = document.createElement('option');
+      opt.value = val; opt.textContent = label;
+      if (y === now.getFullYear() && m === now.getMonth()+1) opt.selected = true;
+      sel.appendChild(opt);
+    }
+  }
+  const v = sel.value.split('-');
+  reviewYear = parseInt(v[0]); reviewMonth = parseInt(v[1]);
+}
+
+window.changeMonth = function(delta) {
+  reviewMonth += delta;
+  if (reviewMonth > 12) { reviewMonth = 1; reviewYear++; }
+  if (reviewMonth < 1) { reviewMonth = 12; reviewYear--; }
+  const val = `${reviewYear}-${String(reviewMonth).padStart(2,'0')}`;
+  document.getElementById('review-month').value = val;
+  renderReview();
+}
+
+window.setFilter = function(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderEntriesFromCache();
+}
+
+async function renderReview() {
+  const v = document.getElementById('review-month').value.split('-');
+  reviewYear = parseInt(v[0]); reviewMonth = parseInt(v[1]);
+  showLoading(true);
+  entriesCache = null;
+  await loadEntries();
+  showLoading(false);
+  renderHeatmap();
+  renderStats();
+  renderEntriesFromCache();
+}
+
+function getMonthEntries() {
+  const entries = entriesCache || {};
+  const prefix = `${reviewYear}-${String(reviewMonth).padStart(2,'0')}`;
+  return Object.entries(entries)
+    .filter(([d]) => d.startsWith(prefix))
+    .sort(([a],[b]) => b.localeCompare(a));
+}
+
+let selectedDay = null;
+
+function renderHeatmap() {
+  const daysInMonth = new Date(reviewYear, reviewMonth, 0).getDate();
+  const entries = entriesCache || {};
+  const prefix = `${reviewYear}-${String(reviewMonth).padStart(2,'0')}`;
+  const today = todayStr();
+  const hm = document.getElementById('heatmap');
+  hm.innerHTML = '';
+  selectedDay = null;
+  document.getElementById('day-detail-container').innerHTML = '';
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${prefix}-${String(d).padStart(2,'0')}`;
+    const hasEntry = !!entries[dateStr];
+    const div = document.createElement('div');
+    div.className = 'heatmap-day' + (hasEntry ? ' has-entry' : '') + (dateStr === today ? ' today-marker' : '');
+    div.id = 'hday-' + dateStr;
+    div.title = hasEntry ? formatDate(dateStr) + '　（點擊展開）' : formatDate(dateStr);
+    div.textContent = d;
+    if (hasEntry) {
+      div.onclick = () => toggleDayDetail(dateStr, entries[dateStr]);
+    }
+    hm.appendChild(div);
+  }
+}
+
+function toggleDayDetail(date, e) {
+  const container = document.getElementById('day-detail-container');
+  // If clicking same day, close it
+  if (selectedDay === date) {
+    selectedDay = null;
+    container.innerHTML = '';
+    document.querySelectorAll('.heatmap-day').forEach(d => d.classList.remove('selected-day'));
+    return;
+  }
+  selectedDay = date;
+  document.querySelectorAll('.heatmap-day').forEach(d => d.classList.remove('selected-day'));
+  document.getElementById('hday-' + date)?.classList.add('selected-day');
+
+  container.innerHTML = `
+    <div class="day-detail">
+      <div class="day-detail-header">
+        <div class="day-detail-date">${formatDate(date)}</div>
+        <button class="day-detail-close" onclick="closeDayDetail()">×</button>
+      </div>
+      <div class="entry-section sec-checkin" style="margin-bottom:14px;">
+        <div class="entry-section-title">✓ 每日最低打卡</div>
+        <div class="entry-meta">完成 ${countChecks(e)} / ${checkItems.length}</div>
+        <div class="entry-text" style="margin-top:6px;">${checkedLabels(e).length ? checkedLabels(e).join('、') : '尚未勾選'}</div>
+      </div>
+      ${e.lifeDone || e.lifeAvoided || e.lifeTomorrow ? `<div class="entry-section sec-life" style="margin-bottom:14px;">
+        <div class="entry-section-title">生活</div>
+        ${e.lifeDone ? `<div class="entry-text"><span style="color:var(--ink-faint);font-size:11px;">今天完成什麼　</span>${e.lifeDone}</div>` : ''}
+        ${e.lifeAvoided ? `<div class="entry-text"><span style="color:var(--ink-faint);font-size:11px;">今天逃避什麼　</span>${e.lifeAvoided}</div>` : ''}
+        ${e.lifeTomorrow ? `<div class="entry-text"><span style="color:var(--ink-faint);font-size:11px;">明天先完成什麼　</span>${e.lifeTomorrow}</div>` : ''}
+      </div>` : ''}
+      ${e.workTired || e.workDone || e.workImprove ? `<div class="entry-section sec-work" style="margin-bottom:14px;">
+        <div class="entry-section-title">工作</div>
+        ${e.workTired ? `<div class="entry-text"><span style="color:var(--ink-faint);font-size:11px;">今天最累的事　</span>${e.workTired}</div>` : ''}
+        ${e.workDone ? `<div class="entry-text"><span style="color:var(--ink-faint);font-size:11px;">今天有做到什麼　</span>${e.workDone}</div>` : ''}
+        ${e.workImprove ? `<div class="entry-text"><span style="color:var(--ink-faint);font-size:11px;">明天可改進什麼　</span>${e.workImprove}</div>` : ''}
+      </div>` : ''}
+      ${e.sleepHours ? `<div class="entry-section sec-sleep" style="border-top:1px dashed var(--line);padding-top:12px;">
+        <div class="entry-section-title">睡眠時數</div>
+        <div class="entry-meta">${e.sleepHours} 小時</div>
+      </div>` : ''}
+    </div>`;
+  // Scroll into view
+  setTimeout(() => container.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+}
+
+window.closeDayDetail = function() {
+  selectedDay = null;
+  document.getElementById('day-detail-container').innerHTML = '';
+  document.querySelectorAll('.heatmap-day').forEach(d => d.classList.remove('selected-day'));
+}
+
+function openManualCopy(text) {
+  const panel = document.getElementById('manual-copy-panel');
+  const field = document.getElementById('manual-copy-text');
+  field.value = text;
+  panel.classList.add('show');
+  setTimeout(() => {
+    field.focus();
+    field.select();
+    field.setSelectionRange(0, field.value.length);
+  }, 50);
+}
+
+window.closeManualCopy = function(event) {
+  if (event && event.target !== document.getElementById('manual-copy-panel')) return;
+  document.getElementById('manual-copy-panel').classList.remove('show');
+}
+
+window.selectManualCopyText = function() {
+  const field = document.getElementById('manual-copy-text');
+  field.focus();
+  field.select();
+  field.setSelectionRange(0, field.value.length);
+  showToast('已全選，請長按選擇複製');
+}
+
+function copyWithTextarea(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.setAttribute('readonly', '');
+  ta.style.position = 'fixed';
+  ta.style.top = '0';
+  ta.style.left = '0';
+  ta.style.width = '1px';
+  ta.style.height = '1px';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  ta.setSelectionRange(0, ta.value.length);
+
+  let copied = false;
+  try {
+    copied = document.execCommand('copy');
+  } catch (error) {
+    copied = false;
+  }
+
+  document.body.removeChild(ta);
+  return copied;
+}
+
+async function copyTextSafely(text) {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch (error) {
+    // Try the older browser path below.
+  }
+
+  return copyWithTextarea(text);
+}
+
+window.exportForChatGPT = async function() {
+  const monthEntries = getMonthEntries();
+  if (!monthEntries.length) { showToast('這個月還沒有紀錄'); return; }
+
+  const monthLabel = `${reviewYear} 年 ${reviewMonth} 月`;
+  let text = `以下是我 ${monthLabel} 的每日最低打卡記錄，請幫我彙整這個月的生活、工作與睡眠模式，發現規律，並給我具體的回饋與下個月的建議。\n\n`;
+  text += `━━━━━━━━━━━━━━━━━━━━━━\n${monthLabel} 每日最低打卡記錄（共 ${monthEntries.length} 天）\n━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+
+  monthEntries.slice().reverse().forEach(([date, e]) => {
+    text += `【${formatDate(date)}】\n`;
+    text += `每日最低打卡：${countChecks(e)} / ${checkItems.length}\n`;
+    checkItems.forEach(([key, label]) => {
+      text += `　${getCheckins(e)[key] ? '[x]' : '[ ]'} ${label}\n`;
+    });
+    if (e.lifeDone || e.lifeAvoided || e.lifeTomorrow) {
+      text += `生活\n`;
+      if (e.lifeDone) text += `　今天完成什麼：${e.lifeDone}\n`;
+      if (e.lifeAvoided) text += `　今天逃避什麼：${e.lifeAvoided}\n`;
+      if (e.lifeTomorrow) text += `　明天先完成什麼：${e.lifeTomorrow}\n`;
+    }
+    if (e.workTired || e.workDone || e.workImprove) {
+      text += `工作\n`;
+      if (e.workTired) text += `　今天最累的事：${e.workTired}\n`;
+      if (e.workDone) text += `　今天有做到什麼：${e.workDone}\n`;
+      if (e.workImprove) text += `　明天可改進什麼：${e.workImprove}\n`;
+    }
+    if (e.sleepHours) text += `睡眠時數：${e.sleepHours} 小時\n`;
+    text += '\n';
+  });
+
+  const copied = await copyTextSafely(text);
+  if (copied) {
+    showToast('✓ 已複製！貼到 ChatGPT 就能彙總');
+    return;
+  }
+
+  openManualCopy(text);
+  showToast('自動複製失敗，請手動複製文字框內容');
+}
+
+function renderStats() {
+  const monthEntries = getMonthEntries();
+  document.getElementById('stat-count').textContent = monthEntries.length;
+  document.getElementById('stat-avg-checks').textContent = monthEntries.length
+    ? (monthEntries.reduce((sum, [, e]) => sum + countChecks(e), 0) / monthEntries.length).toFixed(1)
+    : '—';
+  const sleeps = monthEntries.map(([,e]) => parseFloat(e.sleepHours)).filter(n => !isNaN(n));
+  document.getElementById('stat-avg-sleep').textContent = sleeps.length
+    ? `${(sleeps.reduce((a,b)=>a+b,0)/sleeps.length).toFixed(1)}h` : '—';
+}
+
+function renderEntriesFromCache() {
+  const monthEntries = getMonthEntries();
+  const list = document.getElementById('entries-list');
+  if (!monthEntries.length) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><p>這個月還沒有紀錄</p></div>`;
+    return;
+  }
+  list.innerHTML = monthEntries.map(([date, e]) => {
+    const showCheckin = currentFilter === 'all' || currentFilter === 'checkin';
+    const showLife = currentFilter === 'all' || currentFilter === 'life';
+    const showWork = currentFilter === 'all' || currentFilter === 'work';
+    const showSleep = currentFilter === 'all' || currentFilter === 'sleep';
+    let sections = '';
+    if (showCheckin) sections += `
+      <div class="entry-section sec-checkin">
+        <div class="entry-section-title">✓ 每日最低打卡</div>
+        <div class="entry-meta">完成 ${countChecks(e)} / ${checkItems.length}</div>
+        <div class="entry-text" style="margin-top:6px;">${checkedLabels(e).length ? checkedLabels(e).join('、') : '尚未勾選'}</div>
+      </div>`;
+    if (showLife) sections += `
+      <div class="entry-section sec-life">
+        <div class="entry-section-title">生活</div>
+        ${e.lifeDone ? `<div class="entry-text" style="margin-bottom:4px;"><span style="color:var(--ink-faint);font-size:11px;">今天完成什麼　</span>${e.lifeDone}</div>` : ''}
+        ${e.lifeAvoided ? `<div class="entry-text" style="margin-bottom:4px;"><span style="color:var(--ink-faint);font-size:11px;">今天逃避什麼　</span>${e.lifeAvoided}</div>` : ''}
+        ${e.lifeTomorrow ? `<div class="entry-text"><span style="color:var(--ink-faint);font-size:11px;">明天先完成什麼　</span>${e.lifeTomorrow}</div>` : ''}
+        ${!e.lifeDone && !e.lifeAvoided && !e.lifeTomorrow ? `<div class="entry-text" style="color:var(--ink-faint);font-style:italic;">未填寫</div>` : ''}
+      </div>`;
+    if (showWork) sections += `
+      <div class="entry-section sec-work">
+        <div class="entry-section-title">工作</div>
+        ${e.workTired ? `<div class="entry-text" style="margin-bottom:4px;"><span style="color:var(--ink-faint);font-size:11px;">今天最累的事　</span>${e.workTired}</div>` : ''}
+        ${e.workDone ? `<div class="entry-text" style="margin-bottom:4px;"><span style="color:var(--ink-faint);font-size:11px;">今天有做到什麼　</span>${e.workDone}</div>` : ''}
+        ${e.workImprove ? `<div class="entry-text"><span style="color:var(--ink-faint);font-size:11px;">明天可改進什麼　</span>${e.workImprove}</div>` : ''}
+        ${!e.workTired && !e.workDone && !e.workImprove ? `<div class="entry-text" style="color:var(--ink-faint);font-style:italic;">未填寫</div>` : ''}
+      </div>`;
+    if (showSleep) sections += `
+      <div class="entry-section sec-sleep">
+        <div class="entry-section-title">睡眠時數</div>
+        ${e.sleepHours ? `<div class="entry-meta">${e.sleepHours} 小時</div>` : `<div class="entry-text" style="color:var(--ink-faint);font-style:italic;">未填寫</div>`}
+      </div>`;
+    return `
+      <div class="entry-card">
+        <div class="entry-date-bar">
+          <span class="entry-date-text">${formatDate(date)}</span>
+          <button class="entry-delete" onclick="window.deleteEntry('${date}')" title="刪除此筆紀錄">×</button>
+        </div>
+        <div class="entry-body">${sections}</div>
+      </div>`;
+  }).join('');
+}
+
+window.deleteEntry = async function(date) {
+  if (!confirm(`確定要刪除 ${formatDate(date)} 的紀錄嗎？`)) return;
+  showLoading(true);
+  try {
+    await deleteEntryFromDb(date);
+    showToast('已刪除');
+    renderHeatmap();
+    renderStats();
+    renderEntriesFromCache();
+  } catch(err) {
+    showToast('刪除失敗');
+    console.error(err);
+  }
+  showLoading(false);
+}
+
+// ---- Init ----
+document.getElementById('record-date').value = todayStr();
+loadEntryToForm(todayStr());
+initReviewMonths();
+</script>
+</body>
+</html>
